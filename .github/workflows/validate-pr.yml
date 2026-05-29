@@ -1,13 +1,14 @@
 name: Validate Pull Request Domain Ownership
 
 on:
-  pull_request_target: # 👈 Allows forks to trigger this workflow with secure write permissions
-    types: [opened, synchronize, reopened] # 👈 Automatically runs the moment a PR is created or updated
+  pull_request_target: # 👈 Auto-runs when PRs open, even from forks, with secure permissions
+    types: [opened, synchronize, reopened]
     paths:
       - 'domains/**'
 
+# 🔐 Grants the script authority to assign labels to your PR dashboard list
 permissions:
-  pull-requests: write # 👈 Forces GitHub to grant this specific runner label-writing capabilities
+  pull-requests: write
   contents: read
 
 jobs:
@@ -17,13 +18,21 @@ jobs:
       - name: Checkout PR Code
         uses: actions/checkout@v4
         with:
-          # Safely checks out the exact merge commit of the incoming pull request
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
-          fetch-depth: 2 # Fetches the commit and its parent so we can diff them cleanly
+          fetch-depth: 2 # Fetches current commit and parent for an accurate git diff
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # 💡 Removed 'node-cache: npm' because it causes warnings and requires a lockfile
+
+      - name: Install Dependencies
+        run: npm install # 👈 Changed from 'npm ci' so your workflow never crashes without a lockfile!
 
       - name: Process, Validate, and Label Pull Request
         env:
-          PR_ACTOR: ${{ github.event.pull_request.user.login }} # Isolate the true PR author
+          PR_ACTOR: ${{ github.event.pull_request.user.login }}
           ADMIN_USER: "s8rr"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -61,7 +70,7 @@ jobs:
               .toString()
               .trim()
               .split('\n')
-              .filter(f => f.startsWith('domains/') && f.endsWith('.json') && !f.endsWith('example.json'));
+              .filter(f => f.includes('domains/') && f.endsWith('.json') && !f.endsWith('example.json'));
 
             if (changedFiles.length === 0) {
               console.log('No domain files modified.');
