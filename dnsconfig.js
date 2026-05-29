@@ -1,21 +1,34 @@
-// Initialize Cloudflare provider
+// Initialize Registrars and Providers
 var REG_NONE = NewRegistrar('none');
 var DSP_CLOUDFLARE = NewDnsProvider('cloudflare');
 
-// Read all JSON files from the domains/ directory using a helper script
-// (In production, you'll write a small node script to parse the files into an array)
-var domains = require('./parse-domains.js')(); 
+// Import our custom domain parser utility
+var domains = require('./scripts/parse-domains.js');
 
-D('yourdomain.dev', REG_NONE, DnsProvider(DSP_CLOUDFLARE),
-    A('@', '192.0.2.1'), // Your main landing page
-    
-    // Loop through user files and inject them dynamically
+// Configuration for your Master Apex Domain
+D('code-space.me', REG_NONE, DnsProvider(DSP_CLOUDFLARE),
+    A('@', '192.0.2.1'),     // Replace with your personal landing page IP
+    CNAME('www', '@'),       // Point www to apex
+
+    // Loop through all user-submitted files and inject them into Cloudflare
     domains.map(function(d) {
-        if (d.records.CNAME) {
-            return CNAME(d.subdomain, d.records.CNAME);
+        var subdomain = d.subdomain;
+        var records = d.records;
+        var commands = [];
+
+        if (records.CNAME) {
+            commands.push(CNAME(subdomain, records.CNAME));
         }
-        if (d.records.A) {
-            return A(d.subdomain, d.records.A);
+        if (records.A) {
+            // If they supplied an array of IPs, bind them all
+            if (Array.isArray(records.A)) {
+                records.A.forEach(function(ip) {
+                    commands.push(A(subdomain, ip));
+                });
+            } else {
+                commands.push(A(subdomain, records.A));
+            }
         }
+        return commands;
     })
 );
