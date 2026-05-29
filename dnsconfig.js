@@ -108,6 +108,16 @@ try {
                 '"' + destinationUrl + '"'
             ));
         }
+        // ─── NS DELEGATION RECORDS ────────────────────────────────────────
+        if (records.NS) {
+            // Expected JSON: "NS": ["ns1.cloudflare.com", "ns2.cloudflare.com"]
+            var nsData = Array.isArray(records.NS) ? records.NS : [records.NS];
+            for (var j = 0; j < nsData.length; j++) {
+                var nameServer = nsData[j].trim();
+                if (!nameServer.endsWith('.')) nameServer += '.';
+                totalRecords.push(NS(subdomain, nameServer));
+            }
+        }
     }
 } catch (e) {
     // Fail quietly if background compile file is missing
