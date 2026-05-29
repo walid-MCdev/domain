@@ -4,14 +4,8 @@ const { execSync } = require('child_process');
 
 const BANNED_WORDS = ['admin', 'api', 'root', 'support', 'government', 'govt', 'bkash', 'nagad', 'bank', 'www', 'mail', 'dns'];
 
-// Gracefully logs errors and writes a summary file for PR comments
 function showErrorAndExit(message) {
     console.error(message);
-    try {
-        fs.writeFileSync('validation_error.txt', message);
-    } catch (e) {
-        // Fallback for local testing
-    }
     process.exit(1);
 }
 
@@ -68,7 +62,7 @@ function validate() {
         }
     });
 
-    console.log("✅ Awesome! All domain files passed structural safety and structural linter checks.");
+    console.log("✅ Awesome! All domain files passed structural safety checks.");
 }
 
 validate();
