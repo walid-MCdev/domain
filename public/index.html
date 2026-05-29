@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register your own Subdomain</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header>
+        <h1>✨ get-a.me</h1>
+        <p>Free subdomains for Bangladeshi developers & students.</p>
+        <nav>
+            <a href="#checker">Domain Checker</a> | 
+            <a href="#docs">Documentation</a> | 
+            <a href="https://github.com/s8rr/domain" target="_blank">GitHub Repo</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="checker" class="card">
+            <h2>Find Your Subdomain</h2>
+            <div class="search-box">
+                <input type="text" id="subdomain-input" placeholder="yourname">
+                <span>.yourdomain.me</span>
+                <button onclick="checkDomain()">Check Availability</button>
+            </div>
+            <div id="result-message" class="result"></div>
+        </section>
+
+        <section id="docs" class="card">
+            <h2>Quick Start Documentation 🚀</h2>
+            <ol>
+                <li><strong>Fork</strong> the <a href="https://github.com/s8rr/domain" target="_blank">GitHub Repository</a>.</li>
+                <li>Create a new file inside the <code>domains/</code> folder named exactly after your desired subdomain (e.g., <code>yourname.json</code>).</li>
+                <li>Paste the following JSON structural schema template into your file:
+                    <pre>
+{
+  "owner": {
+    "username": "your-github-handle",
+    "email": "hello@example.com"
+  },
+  "records": {
+    "CNAME": "your-username.github.io"
+  }
+}</pre>
+                </li>
+                <li>Submit a <strong>Pull Request (PR)</strong>. Once our automated pipeline passes validation and an admin merges it, your domain will be live within 5 minutes!</li>
+            </ol>
+        </section>
+    </main>
+
+    <script>
+        async function checkDomain() {
+            const input = document.getElementById('subdomain-input').value.trim().toLowerCase();
+            const resultDiv = document.getElementById('result-message');
+            
+            if (!input || !/^[a-z0-9-]+$/.test(input)) {
+                resultDiv.className = "result error";
+                resultDiv.innerHTML = "Please enter a valid alphanumeric subdomain (lowercase, numbers, dashes only).";
+                return;
+            }
+
+            resultDiv.className = "result loading";
+            resultDiv.innerHTML = "Searching GitHub registry records...";
+
+            // Banned words check frontend safety
+            const banned = ['admin', 'api', 'root', 'support', 'government', 'bank', 'www'];
+            if (banned.includes(input)) {
+                resultDiv.className = "result error";
+                resultDiv.innerHTML = `❌ <strong>${input}.yourdomain.me</strong> is a reserved system keyword and cannot be registered.`;
+                return;
+            }
+
+            try {
+                // Fetch the file directly from your public GitHub repository configuration paths
+                const repoOwner = "s8rr"; 
+                const repoName = "domain";
+                const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/domains/${input}.json`;
+                
+                const response = await fetch(url);
+
+                if (response.status === 404) {
+                    resultDiv.className = "result success";
+                    resultDiv.innerHTML = `🎉 <strong>${input}.yourdomain.me</strong> is available! Follow the docs below to claim it.`;
+                } else if (response.ok) {
+                    const fileData = await response.json();
+                    // Decode base64 content delivered from GitHub API safely
+                    const config = JSON.parse(atob(fileData.content));
+                    
+                    resultDiv.className = "result taken";
+                    resultDiv.innerHTML = `❌ <strong>${input}.yourdomain.me</strong> is already taken.<br>
+                                           👤 <strong>Owner:</strong> <a href="https://github.com/${config.owner.username}" target="_blank">@${config.owner.username}</a><br>
+                                           🎯 <strong>Points to:</strong> <code>${config.records.CNAME || config.records.A}</code>`;
+                } else {
+                    throw new Error("API Rate limit or unexpected status reached.");
+                }
+            } catch (err) {
+                resultDiv.className = "result error";
+                resultDiv.innerHTML = "Error reaching GitHub registry. Please try again later.";
+            }
+        }
+    </script>
+</body>
+</html>
