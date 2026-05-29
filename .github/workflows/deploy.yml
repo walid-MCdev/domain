@@ -8,7 +8,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Production Code
-        uses: actions/checkout@v4       # 👈 Kept at standard v4
+        uses: actions/checkout@v4
+
+      - name: Compile JSON Registry Index
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const files = fs.readdirSync('domains');
+          const result = [];
+          files.forEach(f => {
+            if(f.endsWith('.json') && f !== 'example.json') {
+              const data = JSON.parse(fs.readFileSync('domains/' + f, 'utf8'));
+              result.push({ subdomain: f.replace('.json', '').toLowerCase(), records: data.records });
+            }
+          });
+          fs.writeFileSync('dist-domains.json', JSON.stringify(result));
+          "
 
       - name: Create Production Credentials
         run: |
@@ -22,7 +38,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.DOMAIN }}
 
       - name: Install DNSControl
-        uses: gacts/install-dnscontrol@v1 # 👈 Uses the binary installer action
+        uses: gacts/install-dnscontrol@v1
 
       - name: Push Records Live to Cloudflare
-        run: dnscontrol push              # 👈 Runs the binary directly
+        run: dnscontrol push
