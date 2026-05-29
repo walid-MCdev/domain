@@ -17,41 +17,35 @@ jobs:
           const path = require('path');
           const domainsDir = path.join(process.cwd(), 'domains');
           
-          console.log('🔍 Checking path location:', domainsDir);
-          
           if (!fs.existsSync(domainsDir)) {
-            console.error('❌ Error: domains folder does not exist at path root location.');
+            console.error('❌ Error: domains folder missing.');
             process.exit(1);
           }
           
           const files = fs.readdirSync(domainsDir);
-          console.log('📂 Files found in directory:', files);
-          
           const result = [];
           
           files.forEach(f => {
             if(f.endsWith('.json') && f !== 'example.json') {
               try {
-                const fullPath = path.join(domainsDir, f);
-                const rawData = fs.readFileSync(fullPath, 'utf8');
-                const data = JSON.parse(rawData);
-                
-                console.log('📄 Processing file: ' + f + ' | Records found: ' + (data.records ? 'YES' : 'NO'));
-                
+                const data = JSON.parse(fs.readFileSync(path.join(domainsDir, f), 'utf8'));
                 if (data.records) {
+                  // Extracts full nested subdomain handling dots (e.g. '_vercel.example.json' -> '_vercel.example')
+                  const calculatedSubdomain = f.substring(0, f.lastIndexOf('.json')).toLowerCase().trim();
+                  
                   result.push({ 
-                    subdomain: f.replace('.json', '').toLowerCase().trim(), 
+                    subdomain: calculatedSubdomain, 
                     records: data.records 
                   });
                 }
               } catch(err) {
-                console.error('❌ Malformed JSON syntax error in file: ' + f, err);
+                console.error('Malformed file skipped: ' + f);
               }
             }
           });
           
           fs.writeFileSync('./dist-domains.json', JSON.stringify(result, null, 2));
-          console.log('🎉 Successfully saved dist-domains.json with ' + result.length + ' user entries.');
+          console.log('✅ Compiled ' + result.length + ' structural record files.');
           "
 
       - name: Create Production Credentials
