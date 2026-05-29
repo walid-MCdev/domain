@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Fetch Remote Base Branch
+        run: git fetch origin main
+
       - name: Install Linting Packages
         run: npm install
 
@@ -31,11 +34,34 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           const domainsDir = path.join(process.cwd(), 'domains');
-          if (!fs.existsSync(domainsDir)) process.exit(1);
+          
+          if (!fs.existsSync(domainsDir)) {
+            console.error('❌ Error: domains folder missing.');
+            process.exit(1);
+          }
+          
           const files = fs.readdirSync(domainsDir);
-          const result = files
-            .filter(f => f.endsWith('.json') && f !== 'example.json')
-            .map(f => ({ subdomain: f.replace('.json', '').toLowerCase(), records: JSON.parse(fs.readFileSync(path.join(domainsDir, f), 'utf8')).records }));
+          const result = [];
+          
+          files.forEach(f => {
+            if(f.endsWith('.json') && f !== 'example.json') {
+              try {
+                const data = JSON.parse(fs.readFileSync(path.join(domainsDir, f), 'utf8'));
+                if (data.records) {
+                  // Extracts full nested subdomain handling dots (e.g. '_vercel.example.json' -> '_vercel.example')
+                  const calculatedSubdomain = f.substring(0, f.lastIndexOf('.json')).toLowerCase().trim();
+                  
+                  result.push({ 
+                    subdomain: calculatedSubdomain, 
+                    records: data.records 
+                  });
+                }
+              } catch(err) {
+                console.error('Malformed file skipped: ' + f);
+              }
+            }
+          });
+          
           fs.writeFileSync('dist-domains.json', JSON.stringify(result, null, 2));
           console.log('✅ Validation passed! Ready for manual merge.');
           "
