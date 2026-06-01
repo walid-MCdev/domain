@@ -1,7 +1,7 @@
 # PSA Updating the core logic to so it can handel 3 domain and updateing the docs to match the main domain akjon.dev
 
 
-A free, open-source subdomain registry for Bangladeshi developers and students. Get your own ``yourname.code-space.me`` subdomain to host your portfolio, blog, or personal projects.
+A free, open-source subdomain registry developers and students. Get your own ``yourname.code-space.me`` subdomain to host your portfolio, blog, or personal projects.
 
 The entire system is powered by Infrastructure-as-Code using DNSControl and synced live with Cloudflare via GitHub Actions.
 ### Requirements
