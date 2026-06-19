@@ -1,4 +1,4 @@
- const fs = require('fs');
+const fs = require('fs');
 
 const path = require('path');
 
@@ -6,6 +6,11 @@ const { execSync } = require('child_process');
 
 
 const BANNED_WORDS = ['admin', 'api', 'root', 'support', 'government', 'govt', 'bkash', 'nagad', 'bank', 'www', 'mail', 'dns'];
+
+// Reserved DNS label prefixes. These belong inside a TXT record's "name"
+// field (e.g. { "name": "_vercel", "value": "..." }), never in the filename
+// itself — the filename must always be just the plain subdomain.
+const RESERVED_PREFIXES = ['_vercel', '_acme-challenge', '_dmarc', '_domainkey', '_dkim', '_github-pages-challenge'];
 
 
 function showErrorAndExit(message) {
@@ -69,6 +74,23 @@ function validate() {
         if (!/^[a-z0-9_.-]+$/.test(filename)) {
 
             showErrorAndExit(`❌ Error: Filename \`${filename}\` must contain only lowercase letters, numbers, dashes, underscores, and dots.`);
+
+        }
+
+
+        // 1b. Block reserved DNS label prefixes from being used as the filename/subdomain.
+        // GitHub usernames can never contain an underscore, so a filename whose first
+        // label is one of these can never legitimately "match your GitHub username" —
+        // it's almost always a mistake where the prefix belongs in a TXT record's
+        // "name" field instead.
+
+        const firstLabel = filename.split('.')[0];
+
+        if (RESERVED_PREFIXES.includes(firstLabel)) {
+
+            const suggested = filename.split('.').slice(1).join('.') || '<your-username>';
+
+            showErrorAndExit(`❌ Error: Filename \`${filename}.json\` cannot start with the reserved prefix "${firstLabel}". This prefix belongs in your TXT record's "name" field instead, e.g.:\n\n  "TXT": { "name": "${firstLabel}", "value": "..." }\n\nRename your file to \`${suggested}.json\`.`);
 
         }
 
@@ -197,4 +219,4 @@ function validate() {
 }
 
 
-validate(); 
+validate();
